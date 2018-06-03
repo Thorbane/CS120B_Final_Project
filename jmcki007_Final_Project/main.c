@@ -19,13 +19,13 @@ typedef struct task {
 task tasks[1];
 
 const unsigned char tasksNum = 1;
-const unsigned long tasksPeriodGCD = 10;
+const unsigned long tasksPeriodGCD = 1;
+unsigned char disp_on = 1;
 
-unsigned char output = 0;
 
 void TimerISR() {
     unsigned char i;
-	TimerFlag =1;
+	TimerFlag = 1;
     for (i = 0; i < tasksNum; ++i)
     {
         if ( tasks[i].elapsedTime >= tasks[i].period )
@@ -37,6 +37,87 @@ void TimerISR() {
     }
 }
 
+void disp_line(unsigned char col)
+{
+    unsigned char red = 0xAA>>(col%2);
+    unsigned char green = 0x00;
+    unsigned char blue = 0x00;
+    
+    set_line(col, red, green, blue);
+}
+
+enum ON_OFF_states{INIT, ON, OFF};
+
+int tick_display(int state)
+{
+    static unsigned char col;
+    switch(state)
+    {
+        case ON:
+            if (disp_on)
+            {
+                state = ON;
+            }
+            else
+            {
+                state = OFF;
+            }
+            break;
+        case OFF:
+            if (disp_on)
+            {
+                state = ON;
+            }
+            else
+            {
+                state = OFF;
+            }
+            break;
+        case INIT:
+            if (disp_on)
+            {
+                state = ON;
+            }
+            else
+            {
+                state = OFF;
+            }
+            break;
+        default:
+            state = INIT;
+            break;
+    }
+    
+    switch (state) //actions
+    {
+        case ON:
+            disp_line(col);
+            if (col<7)
+            {
+                col++;
+            }
+            else
+            {
+                col = 0;
+            }
+            break;
+        case OFF:
+            break;
+        case INIT:
+            col = 0;
+            break;
+        default:
+            break;
+    }
+    
+    return state;
+}
+
+int update_board(int state)
+{
+    return state;
+}
+
 int main()
 {
 	DDRB = 0xFF; // Set port B to output
@@ -44,11 +125,15 @@ int main()
 	
 	DDRD = 0xFF;
 	PORTD = 0x00;
+    
+    unsigned char i = 0;
+    tasks[i].state = -1;
+    tasks[i].period = 1;
+    tasks[i].elapsedTime = 1;
+    tasks[i].TickFct = &tick_display;
 	
-	TimerSet(500);
+	TimerSet(1);
 	TimerOn();
-	while(!TimerFlag){}
-	TimerFlag = 0;
-
-	set_line(0x00, 0xAA, 0xAA, 0xAA);	
+    
+    while(1){}
 }
