@@ -9,6 +9,8 @@
 #include "timer.h"
 #include "LED.h"
 
+#define tasksNum 5
+
 typedef struct task {
     int state; // Current state of the task
     unsigned long period; // Rate at which the task should tick
@@ -24,20 +26,24 @@ typedef struct gamepiece
     unsigned char pos[2];
     } gamepiece;
 
-task tasks[1];
+task tasks[tasksNum];
 
-unsigned char frame[8][3][5];  //8 columns, 3 colors, 5 PWM
+
 gamepiece pieces[24];
 
-const unsigned char tasksNum = 1;
 const unsigned long tasksPeriodGCD = 1;
 
 
 unsigned char disp_on = 1;
 const unsigned char BOARD_COLOR[3] = {1,0,0};
-const unsigned char CURSOR_COLOR[3] = {2,2,2};
+const unsigned char CURSOR_COLOR[3] = {2,3,3};
 const unsigned char PLAYR_COLOR[2][3] = {{0,2,0}, {0,0,2}};
 const unsigned char CURSOR_START[2] = {3,3};
+unsigned char cursor_on;
+unsigned char cursor_player;
+unsigned char selected_piece;
+unsigned char cursor_moved, select_flag, up_flag, down_flag, right_flag, left_flag = 0; // Flags
+unsigned char cursor_position[2];
 
 
 void TimerISR() {
@@ -54,86 +60,7 @@ void TimerISR() {
     }
 }
 
-void set_pixels_in_column(unsigned char col, unsigned char pixel_mask, unsigned char red, unsigned char green, unsigned char blue)
-{
-    for (unsigned char i=0; i<5; i++)
-    {
-        // Set up red
-        if ((i)<red)
-        {
-            frame[col][0][i] |= pixel_mask;
-        }
-        else
-        {
-            frame[col][0][i] &= ~pixel_mask;
-        }
-        
-        //Green
-        if ((i)<green)
-        {
-            frame[col][1][i] |= pixel_mask;
-        }
-        else
-        {
-            frame[col][1][i] &= ~pixel_mask;
-        }
-        
-        //Blue
-        if ((i)<blue)
-        {
-            frame[col][2][i] |= pixel_mask;
-        }
-        else
-        {
-            frame[col][2][i] &= ~pixel_mask;
-        }
-    }
-}
 
-void set_pixel(unsigned char row, unsigned char col, unsigned char red, unsigned char green, unsigned char blue)
-{
-    for (unsigned char i=0; i<5; i++)
-    {
-        // Set up red
-        if ((i)<red)
-        {
-            frame[col][0][i] |= 0x01<<row;
-        }
-        else
-        {
-            frame[col][0][i] &= ~(0x01<<row);
-        }
-        
-        //Green
-        if ((i)<green)
-        {
-            frame[col][1][i] |= 0x01<<row;
-        }
-        else
-        {
-            frame[col][1][i] &= ~(0x01<<row);
-        }
-        
-        //Blue
-        if ((i)<blue)
-        {
-            frame[col][2][i] |= 0x01<<row;
-        }
-        else
-        {
-            frame[col][2][i] &= ~(0x01<<row);
-        }
-    }    
-}
-
-void disp_line(unsigned char col, unsigned char pwm)
-{
-    unsigned char red = frame[col][0][pwm];
-    unsigned char green = frame[col][1][pwm];
-    unsigned char blue = frame[col][2][pwm];
-    
-    set_line(col, red, green, blue);
-}
 
 void set_frame()
 {
@@ -141,6 +68,7 @@ void set_frame()
     
     for (unsigned char i = 0 ; i<8; i++)
     {
+        set_pixels_in_column(i,0xFF,0,0,0);
         set_pixels_in_column(i,(0x55<<(i%2)),BOARD_COLOR[0],BOARD_COLOR[1],BOARD_COLOR[2]);
     }
     
@@ -155,9 +83,212 @@ void set_frame()
     }
     
     //Display Cursor
+    
+    if (cursor_on)
+    {
+        set_pixel(cursor_position[0],cursor_position[1],CURSOR_COLOR[0],CURSOR_COLOR[1],CURSOR_COLOR[2]);
+    }
+}
+
+void game_init()
+{
+    cursor_position[0] = CURSOR_START[0];
+    cursor_position[1] = CURSOR_START[1];
+    
+    for (unsigned char i = 0; i < 12; i++)
+    {
+        
+    }
+    
+    
+    set_frame();
+}
+
+unsigned char select_piece()
+{
+    for (unsigned char i = 0; i < 24; i++)
+    {
+        if (pieces[i].pos[0] == cursor_position[0])
+        {
+            if(pieces[i].pos[1] == cursor_position[1])
+            {
+                if (pieces[i].player == cursor_player)
+                {
+                    selected_piece = i;
+                    return 1;
+                }
+            }
+        }
+    }
+    
+    return 0;
 }
 
 enum ON_OFF_states{INIT, ON, OFF};
+enum CURSOR_STATES{INI, MOVE, SELECT_PIECE};
+
+int tick_cursor(int state)
+{
+    switch(state)
+    {
+        case INI:
+            state = MOVE;
+            break;
+        case MOVE:
+            if(select_flag)
+            {
+                if(select_piece())
+                {
+                    state = SELECT_PIECE;
+                }
+                else
+                {
+                    state = MOVE;
+                }
+            }
+            else
+            {
+                state = MOVE;
+            }
+            break;
+        case SELECT_PIECE:
+            state = MOVE;
+            break;
+        default:
+            state = INIT;
+            break;
+    }
+    
+    switch (state)
+    {
+        case INI:
+            break;
+            
+        case MOVE:        
+            if (up_flag != down_flag)
+            {
+                if(up_flag && (cursor_position[1]>0))
+                {
+                    cursor_position[1]--;
+                    cursor_moved = 1;
+                }
+                if(down_flag && (cursor_position[1]<7))
+                {
+                    cursor_position[1]++;
+                    cursor_moved = 1;
+                }
+            }
+            
+            if (right_flag != left_flag)
+            {
+                if(left_flag && (cursor_position[0]>0))
+                {
+                    cursor_position[0]--;
+                    cursor_moved = 1;
+                }
+                if(right_flag && (cursor_position[0]<7))
+                {
+                    cursor_position[0]++;
+                    cursor_moved = 1;
+                }
+            }
+            up_flag = down_flag = left_flag = right_flag = 0;
+            break;
+        
+        case SELECT_PIECE:
+            break;
+    }
+    
+    return state;
+}
+
+int tick_button_input(int state)
+{
+    if (!(PINA & 0x04))
+    {
+        up_flag = 1;
+    }        
+    if (!(PINA & 0x08))
+    {
+        down_flag = 1;
+    }
+    if (!(PINA & 0x10))
+    {
+        right_flag = 1;
+    }
+    if (!(PINA & 0x20))
+    {
+        left_flag = 1;
+    }
+    return state;
+}      
+    
+int tick_cursor_blink(int state)
+{
+    static unsigned char i;
+    
+    switch(state)      //Transitions
+    {
+        case ON:
+            if (cursor_moved)
+            {
+                i = 0;
+                cursor_moved = 0;
+            }
+            if (i<2)
+            {
+                state = ON;
+            }
+            else
+            {
+                state = OFF;
+                i = 0;
+                cursor_on = 0;
+            }
+            break;
+        case OFF:
+            if (i<2 && !cursor_moved)
+            {
+                state = OFF;
+            }
+            else
+            {
+                state = ON;
+                cursor_on = 1;
+                cursor_moved = 0;
+                i = 0;
+            }
+            break;
+        case INIT:
+            state = ON;
+            cursor_on = 1;
+            i = 0;
+            break;
+        default:
+            state = INIT;
+            break;
+    }
+    
+    switch (state)  //actions
+    {
+        case ON:
+            i++;
+            break;
+        case OFF:
+            i++;
+            break;
+        case INIT:
+            break;
+    }
+    
+    return state;
+}
+
+int set_display(int state)
+{
+    set_frame();
+    return state;
+}
 
 int tick_display(int state)
 {
@@ -211,7 +342,7 @@ int tick_display(int state)
             else
             {
                 col = 0;
-                if (pwm<4)
+                if (pwm<(pwm_div-1))
                 {
                     pwm ++;
                 }
@@ -235,6 +366,9 @@ int tick_display(int state)
 
 int main()
 {
+    DDRA = 0x00;
+    PORTA = 0xFF;
+    
 	DDRB = 0xFF; // Set port B to output
 	PORTB = 0x00; // Init port B to 0s
 	
@@ -243,12 +377,31 @@ int main()
     
     unsigned char i = 0;
     tasks[i].state = -1;
+    tasks[i].period = 500;
+    tasks[i].elapsedTime = 500;
+    tasks[i].TickFct = &tick_button_input;
+    i++;
+    tasks[i].state = -1;
+    tasks[i].period = 500;
+    tasks[i].elapsedTime = 500;
+    tasks[i].TickFct = &tick_cursor;
+    i++;
+    tasks[i].state = -1;
+    tasks[i].period = 1000;
+    tasks[i].elapsedTime = 1000;
+    tasks[i].TickFct = &tick_cursor_blink;
+    i++;
+    tasks[i].state = -1;
+    tasks[i].period = 500;
+    tasks[i].elapsedTime = 500;
+    tasks[i].TickFct = &set_display;
+    i++;
+    tasks[i].state = -1;
     tasks[i].period = 1;
     tasks[i].elapsedTime = 1;
     tasks[i].TickFct = &tick_display;
     
-    set_pixel(1,3,3,0,5);
-    set_frame();
+    game_init();
 	
 	TimerSet(1);
 	TimerOn();

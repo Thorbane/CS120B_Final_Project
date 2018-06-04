@@ -23,6 +23,10 @@
 #define port PORTB
 #define column PORTD
 
+#define pwm_div 5
+
+unsigned char frame[8][3][pwm_div];  //8 columns, 3 colors, 5 PWM
+
 void set_line(unsigned char line, unsigned char red, unsigned char green, unsigned char blue)
 {
     red = ~red;
@@ -43,8 +47,90 @@ void set_line(unsigned char line, unsigned char red, unsigned char green, unsign
 	output = output | 0x30;
 	PORTB = output;
     PORTD = 0x01 << line;
-    PORTB = 0x00;
+    PORTB = output;
 }
+
+void disp_line(unsigned char col, unsigned char pwm)
+{
+    unsigned char red = frame[col][0][pwm];
+    unsigned char green = frame[col][1][pwm];
+    unsigned char blue = frame[col][2][pwm];
+    
+    set_line(col, red, green, blue);
+}
+
+void set_pixels_in_column(unsigned char col, unsigned char pixel_mask, unsigned char red, unsigned char green, unsigned char blue)
+{
+    for (unsigned char i=0; i<pwm_div; i++)
+    {
+        // Set up red
+        if ((i)<red)
+        {
+            frame[col][0][i] |= pixel_mask;
+        }
+        else
+        {
+            frame[col][0][i] &= ~pixel_mask;
+        }
+        
+        //Green
+        if ((i)<green)
+        {
+            frame[col][1][i] |= pixel_mask;
+        }
+        else
+        {
+            frame[col][1][i] &= ~pixel_mask;
+        }
+        
+        //Blue
+        if ((i)<blue)
+        {
+            frame[col][2][i] |= pixel_mask;
+        }
+        else
+        {
+            frame[col][2][i] &= ~pixel_mask;
+        }
+    }
+}
+
+void set_pixel(unsigned char col, unsigned char row, unsigned char red, unsigned char green, unsigned char blue)
+{
+    for (unsigned char i=0; i<pwm_div; i++)
+    {
+        // Set up red
+        if ((i)<red)
+        {
+            frame[col][0][i] |= 0x01<<row;
+        }
+        else
+        {
+            frame[col][0][i] &= ~(0x01<<row);
+        }
+        
+        //Green
+        if ((i)<green)
+        {
+            frame[col][1][i] |= 0x01<<row;
+        }
+        else
+        {
+            frame[col][1][i] &= ~(0x01<<row);
+        }
+        
+        //Blue
+        if ((i)<blue)
+        {
+            frame[col][2][i] |= 0x01<<row;
+        }
+        else
+        {
+            frame[col][2][i] &= ~(0x01<<row);
+        }
+    }
+}
+
 
 #endif
 
