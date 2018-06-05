@@ -37,7 +37,7 @@ const unsigned long tasksPeriodGCD = 1;
 unsigned char disp_on = 1;
 const unsigned char BOARD_COLOR[3] = {1,0,0};
 const unsigned char CURSOR_COLOR[3] = {2,3,3};
-const unsigned char PLAYR_COLOR[2][3] = {{0,2,0}, {0,0,2}};
+const unsigned char PLAYR_COLOR[2][3] = {{0,0,2}, {0,2,0}};
 const unsigned char CURSOR_START[2] = {3,3};
 unsigned char cursor_on;
 unsigned char cursor_player;
@@ -95,9 +95,44 @@ void game_init()
     cursor_position[0] = CURSOR_START[0];
     cursor_position[1] = CURSOR_START[1];
     
+    
+    //Set up player 1 pieces
     for (unsigned char i = 0; i < 12; i++)
     {
-        
+        pieces[i].player = 0;
+        pieces[i].king = 0;
+        pieces[i].in_play = 1;
+    }
+    
+    unsigned char i = 0;
+    for (unsigned char j = 5; j<8 ; j++)
+    {
+        for (unsigned char k = (j+1)%2; k < 8; k += 2)
+        {
+            pieces[i].pos[0] = k;
+            pieces[i].pos[1] = j;
+            i++;
+        }
+    }
+    
+    
+    //Set up player 2 pieces
+    for (unsigned char i = 12; i < 24; i++)
+    {
+        pieces[i].player = 1;
+        pieces[i].king = 0;
+        pieces[i].in_play = 1;
+    }
+    
+    i = 12;
+    for (unsigned char j = 0; j<3 ; j++)
+    {
+        for (unsigned char k = (j+1)%2; k < 8; k += 2)
+        {
+            pieces[i].pos[0] = k;
+            pieces[i].pos[1] = j;
+            i++;
+        }
     }
     
     

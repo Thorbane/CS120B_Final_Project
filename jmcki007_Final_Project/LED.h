@@ -23,7 +23,7 @@
 #define port PORTB
 #define column PORTD
 
-#define pwm_div 5
+#define pwm_div 3
 
 unsigned char frame[8][3][pwm_div];  //8 columns, 3 colors, 5 PWM
 
