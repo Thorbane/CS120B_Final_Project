@@ -41,8 +41,8 @@ const unsigned char PLAYR_COLOR[2][3] = {{0,0,2}, {0,2,0}};
 const unsigned char CURSOR_START[2] = {3,3};
 unsigned char cursor_on;
 unsigned char cursor_player;
-unsigned char selected_piece;
-unsigned char cursor_moved, select_flag, up_flag, down_flag, right_flag, left_flag = 0; // Flags
+unsigned char selected_piece = 25;
+unsigned char piece_selected, cursor_moved, select_flag, up_flag, down_flag, right_flag, left_flag = 0; // Flags
 unsigned char cursor_position[2];
 
 
@@ -59,8 +59,6 @@ void TimerISR() {
         tasks[i].elapsedTime += tasksPeriodGCD;
     }
 }
-
-
 
 void set_frame()
 {
@@ -81,6 +79,12 @@ void set_frame()
             set_pixel(pieces[i].pos[0], pieces[i].pos[1], PLAYR_COLOR[pieces[i].player][0], PLAYR_COLOR[pieces[i].player][1], PLAYR_COLOR[pieces[i].player][2]);
         }
     }
+	
+	if (piece_selected && (selected_piece<25))
+	{
+		set_pixel(pieces[selected_piece].pos[0], pieces[selected_piece].pos[1], PLAYR_COLOR[pieces[selected_piece].player][0]+1,
+		 PLAYR_COLOR[pieces[selected_piece].player][1]+1, PLAYR_COLOR[pieces[selected_piece].player][2]+1);
+	}
     
     //Display Cursor
     
@@ -114,8 +118,7 @@ void game_init()
             i++;
         }
     }
-    
-    
+        
     //Set up player 2 pieces
     for (unsigned char i = 12; i < 24; i++)
     {
@@ -150,6 +153,7 @@ unsigned char select_piece()
                 if (pieces[i].player == cursor_player)
                 {
                     selected_piece = i;
+					piece_selected = 1;
                     return 1;
                 }
             }
@@ -157,6 +161,13 @@ unsigned char select_piece()
     }
     
     return 0;
+}
+
+unsigned char move_piece(unsigned char piece_index, unsigned char x, unsigned char y)
+{
+	pieces[piece_index].pos[0] = x;
+	pieces[piece_index].pos[1] = y;
+	return 1;
 }
 
 enum ON_OFF_states{INIT, ON, OFF};
@@ -187,7 +198,21 @@ int tick_cursor(int state)
             }
             break;
         case SELECT_PIECE:
-            state = MOVE;
+            if (!select_flag)
+			{
+				state = SELECT_PIECE
+			}
+			else if (select_flag && cursor_position[0] == pieces[piece_selected].pos[0] && cursor_position[1] == pieces[piece_selected].pos[1])
+			{
+				state = MOVE;
+			}
+			else
+			{
+				if (move_piece(piece_selected, cursor_position[0], cursor_position[1]))
+				{
+					piece_moved = 1;
+				}
+				state = MOVE;
             break;
         default:
             state = INIT;
