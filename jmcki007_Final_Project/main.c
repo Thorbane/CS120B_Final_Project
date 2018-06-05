@@ -40,9 +40,10 @@ const unsigned char CURSOR_COLOR[3] = {2,3,3};
 const unsigned char PLAYR_COLOR[2][3] = {{0,0,2}, {0,2,0}};
 const unsigned char CURSOR_START[2] = {3,3};
 unsigned char cursor_on;
-unsigned char cursor_player;
-unsigned char selected_piece = 25;
-unsigned char piece_selected, cursor_moved, select_flag, up_flag, down_flag, right_flag, left_flag = 0; // Flags
+unsigned char cursor_player = 0;
+unsigned char piece_to_move = 25;
+unsigned char piece_selected, piece_moved, cursor_moved;    // Flags
+unsigned char select_flag, reset_flag, up_flag, down_flag, right_flag, left_flag = 0; // Input Flags
 unsigned char cursor_position[2];
 
 
@@ -80,10 +81,10 @@ void set_frame()
         }
     }
 	
-	if (piece_selected && (selected_piece<25))
+	if (piece_selected && (piece_to_move<25))
 	{
-		set_pixel(pieces[selected_piece].pos[0], pieces[selected_piece].pos[1], PLAYR_COLOR[pieces[selected_piece].player][0]+1,
-		 PLAYR_COLOR[pieces[selected_piece].player][1]+1, PLAYR_COLOR[pieces[selected_piece].player][2]+1);
+		set_pixel(pieces[piece_to_move].pos[0], pieces[piece_to_move].pos[1], PLAYR_COLOR[pieces[piece_to_move].player][0]+1,
+		 PLAYR_COLOR[pieces[piece_to_move].player][1]+1, PLAYR_COLOR[pieces[piece_to_move].player][2]+1);
 	}
     
     //Display Cursor
@@ -152,7 +153,7 @@ unsigned char select_piece()
             {
                 if (pieces[i].player == cursor_player)
                 {
-                    selected_piece = i;
+                    piece_to_move = i;
 					piece_selected = 1;
                     return 1;
                 }
@@ -163,11 +164,15 @@ unsigned char select_piece()
     return 0;
 }
 
-unsigned char move_piece(unsigned char piece_index, unsigned char x, unsigned char y)
+unsigned char is_valid_move(unsigned char p_x, unsigned char p_y, unsigned char c_x, unsigned char c_y)
 {
-	pieces[piece_index].pos[0] = x;
-	pieces[piece_index].pos[1] = y;
-	return 1;
+    
+}
+
+unsigned char move_piece()
+{
+	pieces[piece_to_move].pos[0] = cursor_position[0];
+	pieces[piece_to_move].pos[1] = cursor_position[1];
 }
 
 enum ON_OFF_states{INIT, ON, OFF};
@@ -183,9 +188,11 @@ int tick_cursor(int state)
         case MOVE:
             if(select_flag)
             {
+                select_flag = 0;
                 if(select_piece())
                 {
                     state = SELECT_PIECE;
+                    piece_selected = 1;
                 }
                 else
                 {
@@ -198,21 +205,31 @@ int tick_cursor(int state)
             }
             break;
         case SELECT_PIECE:
-            if (!select_flag)
+            if (!select_flag && !reset_flag)
 			{
-				state = SELECT_PIECE
+				state = SELECT_PIECE;
 			}
 			else if (select_flag && cursor_position[0] == pieces[piece_selected].pos[0] && cursor_position[1] == pieces[piece_selected].pos[1])
 			{
 				state = MOVE;
+                select_flag = 0;
+                piece_to_move = 25;
+                piece_selected = 0;
 			}
 			else
 			{
-				if (move_piece(piece_selected, cursor_position[0], cursor_position[1]))
+				if (is_valid_move(pieces[piece_to_move].pos[0], pieces[piece_to_move].pos[1], cursor_position[0], cursor_position[1]))
 				{
+                    move_piece(piece_to_move)
 					piece_moved = 1;
+                    select_flag = 0;
+                    state = MOVE;
+                    piece_to_move = 25;
+                    piece_selected = 0;
+                    break;
 				}
-				state = MOVE;
+                state = MOVE
+            }                
             break;
         default:
             state = INIT;
@@ -256,6 +273,34 @@ int tick_cursor(int state)
             break;
         
         case SELECT_PIECE:
+            if (up_flag != down_flag)
+            {
+                if(up_flag && (cursor_position[1]>0))
+                {
+                    cursor_position[1]--;
+                    cursor_moved = 1;
+                }
+                if(down_flag && (cursor_position[1]<7))
+                {
+                    cursor_position[1]++;
+                    cursor_moved = 1;
+                }
+            }
+            
+            if (right_flag != left_flag)
+            {
+                if(left_flag && (cursor_position[0]>0))
+                {
+                    cursor_position[0]--;
+                    cursor_moved = 1;
+                }
+                if(right_flag && (cursor_position[0]<7))
+                {
+                    cursor_position[0]++;
+                    cursor_moved = 1;
+                }
+            }
+            up_flag = down_flag = left_flag = right_flag = 0;
             break;
     }
     
@@ -280,6 +325,15 @@ int tick_button_input(int state)
     {
         left_flag = 1;
     }
+    if (!(PINA & 0x40))
+    {
+        select_flag = 1;
+    }
+    if (!(PINA & 0x80))
+    {
+        reset_flag = 1;
+    }
+    
     return state;
 }      
     
