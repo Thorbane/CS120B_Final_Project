@@ -166,10 +166,10 @@ unsigned char select_piece()
 
 unsigned char is_valid_move(unsigned char p_x, unsigned char p_y, unsigned char c_x, unsigned char c_y)
 {
-    
+    return 1;
 }
 
-unsigned char move_piece()
+void move_piece()
 {
 	pieces[piece_to_move].pos[0] = cursor_position[0];
 	pieces[piece_to_move].pos[1] = cursor_position[1];
@@ -220,7 +220,7 @@ int tick_cursor(int state)
 			{
 				if (is_valid_move(pieces[piece_to_move].pos[0], pieces[piece_to_move].pos[1], cursor_position[0], cursor_position[1]))
 				{
-                    move_piece(piece_to_move)
+                    move_piece(piece_to_move);
 					piece_moved = 1;
                     select_flag = 0;
                     state = MOVE;
@@ -228,7 +228,7 @@ int tick_cursor(int state)
                     piece_selected = 0;
                     break;
 				}
-                state = MOVE
+                state = MOVE;
             }                
             break;
         default:
@@ -516,6 +516,7 @@ int main()
     tasks[i].TickFct = &tick_display;
     
     game_init();
+	//ADC_init();
 	
 	TimerSet(1);
 	TimerOn();
