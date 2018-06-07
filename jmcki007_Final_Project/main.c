@@ -9,7 +9,7 @@
 #include "timer.h"
 #include "LED.h"
 
-#define tasksNum 6
+#define tasksNum 7
 
 typedef struct task {
     int state; // Current state of the task
@@ -25,6 +25,14 @@ typedef struct gamepiece
     unsigned char king;
     unsigned char pos[2];
     } gamepiece;
+	
+typedef struct move
+{
+	unsigned char x;
+	unsigned char y;
+	unsigned char jump;
+	unsigned char jumped_piece;
+	} move;
 
 task tasks[tasksNum];
 
@@ -40,7 +48,7 @@ const unsigned char CURSOR_COLOR[3] = {2,3,3};
 const unsigned char POSSIBLE_MOVE_COLOR[3] = {1,1,1};
 const unsigned char PLAYR_COLOR[2][3] = {{0,0,2}, {0,2,0}};
 const unsigned char CURSOR_START[2] = {3,3};
-unsigned char Possible_Moves[4][2];
+move Possible_Moves[4];
 unsigned char num_possible;
 unsigned char cursor_on;
 unsigned char cursor_player = 0;
@@ -106,7 +114,7 @@ void set_frame()
     {
         for (unsigned char i = 0; i<num_possible; i++)
         {
-            set_pixel(Possible_Moves[i][0], Possible_Moves[i][1], POSSIBLE_MOVE_COLOR[0], POSSIBLE_MOVE_COLOR[1], POSSIBLE_MOVE_COLOR[2]);
+            set_pixel(Possible_Moves[i].x, Possible_Moves[i].y, POSSIBLE_MOVE_COLOR[0], POSSIBLE_MOVE_COLOR[1], POSSIBLE_MOVE_COLOR[2]);
         }
     }
     
@@ -187,7 +195,7 @@ unsigned char select_piece()
     return 0;
 }
 
-unsigned char space_occupied(unsigned char pos[2])
+/*unsigned char space_occupied(unsigned char pos[2])
 {
     if (pos[0]>7 || pos[1]>7)
     {
@@ -206,11 +214,32 @@ unsigned char space_occupied(unsigned char pos[2])
     }
     
     return 0;
+} */
+
+unsigned char space_occupied(unsigned char x, unsigned char y)
+{
+    if (x>7 || y>7)
+    {
+        return 1;
+    }
+    
+    else
+    {
+        for (unsigned char i = 0 ; i<24; i++)
+        {
+            if (pieces[i].pos[0] == x || pieces[i].pos[1] == y)
+            {
+                return 1;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 unsigned char find_moves_for_piece()
 {
-    unsigned char temp[4][2]; // temporarily store possible move positions for checking
+    move temp[4]; // temporarily store possible move positions for checking
     unsigned char index = 0;
     if (!pieces[piece_to_move].king)
     {
@@ -218,14 +247,14 @@ unsigned char find_moves_for_piece()
         {
             if (pieces[piece_to_move].pos[0]>0)
             {
-                temp[index][0] = pieces[piece_to_move].pos[0]-1;
-                temp[index][1] = pieces[piece_to_move].pos[1]-1;
+                temp[index].x = pieces[piece_to_move].pos[0]-1;
+                temp[index].y = pieces[piece_to_move].pos[1]-1;
                 index++;
             }
             if (pieces[piece_to_move].pos[0]<7)
             {
-                temp[index][0] = pieces[piece_to_move].pos[0]+1;
-                temp[index][1] = pieces[piece_to_move].pos[1]-1;
+                temp[index].x = pieces[piece_to_move].pos[0]+1;
+                temp[index].y = pieces[piece_to_move].pos[1]-1;
                 index++;
             }
             // First 12 pieces in the array are player 0
@@ -233,21 +262,42 @@ unsigned char find_moves_for_piece()
             {
                 for (unsigned char j = 0; j<index; j++)
                 {
-                    if ((pieces[i].pos[0] == temp[j][0]) && (pieces[i].pos[1] == temp[j][1]))
+                    if ((pieces[i].pos[0] == temp[j].x) && (pieces[i].pos[1] == temp[j].y))
                     {
-                        temp[j][0] = 8;  // set position to invalid value to indicate it's invalid
+                        temp[j].x = 8;  // set position to invalid value to indicate it's invalid
                     }
                 }
             }
+			
+			for (unsigned char i = 12; i<24; i++)
+			{
+				for (unsigned char j = 0; j<index; j++)
+				{
+					if ((pieces[i].pos[0] == temp[j].x) && (pieces[i].pos[1] == temp[j].y))
+                    {
+						unsigned char x = temp[j].x +(temp[j].x - pieces[i].pos[0]);
+						unsigned char y = temp[j].y +(temp[j].y - pieces[i].pos[1]);
+						
+                        if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
+						{
+							temp[j].x = x;
+							temp[j].y = y;
+							temp[j].jump = 1;
+							temp[j].jumped_piece = i;
+						}
+                    }
+				}
+			}
         }
     }
     unsigned char count = 0;
-    for (unsigned char i = 0; i<index; i++)
+    for (unsigned char i = 0; i<index; i++) // assign found valid moves to glabal array
     {
-        if (temp[i][0]<8)
+        if (temp[i].x<8)
         {
-            Possible_Moves[count][0] = temp[i][0];
-            Possible_Moves[count][1] = temp[i][1];
+            //Possible_Moves[count].x = temp[i].x;
+            //Possible_Moves[count].y = temp[i].y;
+			Possible_Moves[count] = temp[i];
             count++;
         }
     }
@@ -255,10 +305,10 @@ unsigned char find_moves_for_piece()
     return count;
 }
 
-void move_piece()
+void move_piece(unsigned char index)  // Moves Selected piece.
 {
-	pieces[piece_to_move].pos[0] = cursor_position[0];
-	pieces[piece_to_move].pos[1] = cursor_position[1];
+	pieces[piece_to_move].pos[0] = Possible_Moves[index].x;
+	pieces[piece_to_move].pos[1] = Possible_Moves[index].y;
     
     if (pieces[piece_to_move].pos[1] == 0 && pieces[piece_to_move].player == 0)
     {
@@ -269,7 +319,7 @@ void move_piece()
     {
         pieces[piece_to_move].king = 1;
     }
-    piece_moved = 1;
+    piece_moved = 1;  // set global piece moved flag
 }
 
 enum ON_OFF_states{INIT, ON, OFF};
@@ -319,18 +369,18 @@ int tick_cursor(int state)
 			{
                 for (unsigned char i = 0; i<num_possible; i++)
                 {
-                    if (cursor_position[0] == Possible_Moves[i][0] && cursor_position[1] == Possible_Moves[i][1])
+                    if (cursor_position[0] == Possible_Moves[i].x && cursor_position[1] == Possible_Moves[i].y)
                     {
-                        move_piece();
+						if (Possible_Moves[i].jump)
+						{
+							piece_jumped = Possible_Moves[i].jumped_piece;
+						}
+                        move_piece(i);
                         state = MOVE;
                         num_possible = 0;
                         piece_selected_flag = 0;
                         piece_to_move = 25;
                         select_flag = 0;
-                        if (piece_jumped < 24)
-                        {
-                            pieces[piece_jumped].in_play = 0;
-                        }
                         break;
                     }
                 }
@@ -448,10 +498,6 @@ int tick_button_input(int state)
     if (!(PINA & 0x20))
     {
         left_flag = 1;
-    }
-    if (!(PINA & 0x40))
-    {
-        select_flag = 1;
     }
     if (!(PINA & 0x80))
     {
@@ -812,5 +858,5 @@ int main()
 	TimerSet(1);
 	TimerOn();
     
-    while(1){TimerISR();}
+    while(1){}
 }
