@@ -47,7 +47,7 @@ unsigned char space_occupied(unsigned char x, unsigned char y)
     {
         for (unsigned char i = 0 ; i<24; i++)
         {
-            if (pieces[i].pos[0] == x && pieces[i].pos[1] == y)
+            if (pieces[i].pos[0] == x && pieces[i].pos[1] == y && pieces[i].in_play)
             {
                 return 1;
             }
