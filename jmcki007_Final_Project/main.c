@@ -163,11 +163,8 @@ int tick_game(int state)
         case PLAYER_1_TURN:
             if (piece_jumped<24)
             {
-                piece_moved = 0;  //set flag to 0
                 pieces[piece_jumped].in_play = 0;
-                piece_jumped = 25;
-                state = PLAYER_1_TURN;  // continue turn
-                break;
+                piece_jumped = 25;  //
             }
             if (piece_moved)
             {
@@ -178,11 +175,8 @@ int tick_game(int state)
         case PLAYER_2_TURN:
             if (piece_jumped<24)
             {
-                piece_moved = 0;  //set flag to 0
                 pieces[piece_jumped].in_play = 0;
                 piece_jumped = 25;
-                state = PLAYER_2_TURN;  // continue turn
-                break;
             }
             if (piece_moved)
             {
