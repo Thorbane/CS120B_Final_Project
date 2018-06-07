@@ -28,12 +28,9 @@ typedef struct move
 
 move Possible_Moves[4];
 unsigned char num_possible;
-unsigned char cursor_on;
 unsigned char cursor_player;
 unsigned char piece_to_move = 25;
 unsigned char piece_selected_flag, piece_moved, cursor_moved, display_changed;    // Flags
-unsigned char piece_jumped = 25;  // if set to valid index in pieces array, move will take the piece at index out of play
-unsigned char select_flag, reset_flag, up_flag, down_flag, right_flag, left_flag = 0; // Input Flags
 unsigned char cursor_position[2];
 
 
@@ -50,7 +47,7 @@ unsigned char space_occupied(unsigned char x, unsigned char y)
     {
         for (unsigned char i = 0 ; i<24; i++)
         {
-            if (pieces[i].pos[0] == x || pieces[i].pos[1] == y)
+            if (pieces[i].pos[0] == x && pieces[i].pos[1] == y)
             {
                 return 1;
             }
@@ -86,18 +83,21 @@ unsigned char select_piece()
 {
     for (unsigned char i = 0; i < 24; i++)
     {
-        if (pieces[i].pos[0] == cursor_position[0])
+        if (pieces[i].in_play)
         {
-            if(pieces[i].pos[1] == cursor_position[1])
+            if (pieces[i].pos[0] == cursor_position[0])
             {
-                if (pieces[i].player == cursor_player)
+                if(pieces[i].pos[1] == cursor_position[1])
                 {
-                    piece_to_move = i;
-                    piece_selected_flag = 1;
-                    return 1;
+                    if (pieces[i].player == cursor_player)
+                    {
+                        piece_to_move = i;
+                        piece_selected_flag = 1;
+                        return 1;
+                    }
                 }
             }
-        }
+        }            
     }
     
     return 0;
@@ -123,108 +123,129 @@ void move_piece(unsigned char index)  // Moves Selected piece.
 
 unsigned char find_moves_for_piece()
 {
-    move temp[4]; // temporarily store possible move positions for checking
+    move temp_to_test[4]; // temporarily store possible move positions for checking
     unsigned char index = 0;
     if (!pieces[piece_to_move].king)
     {
         if (pieces[piece_to_move].player == 0)
         {
-            if (pieces[piece_to_move].pos[0]>0)
+            if (pieces[piece_to_move].pos[0]>0) // bounds check
             {
-                temp[index].x = pieces[piece_to_move].pos[0]-1;
-                temp[index].y = pieces[piece_to_move].pos[1]-1;
+                temp_to_test[index].x = pieces[piece_to_move].pos[0]-1;
+                temp_to_test[index].y = pieces[piece_to_move].pos[1]-1;
+                temp_to_test[index].jump = 0;
+                temp_to_test[index].jumped_piece = 25;
                 index++;
             }
-            if (pieces[piece_to_move].pos[0]<7)
+            if (pieces[piece_to_move].pos[0]<7)  // bounds check 
             {
-                temp[index].x = pieces[piece_to_move].pos[0]+1;
-                temp[index].y = pieces[piece_to_move].pos[1]-1;
+                temp_to_test[index].x = pieces[piece_to_move].pos[0]+1;
+                temp_to_test[index].y = pieces[piece_to_move].pos[1]-1;
+                temp_to_test[index].jump = 0;
+                temp_to_test[index].jumped_piece = 25;
                 index++;
             }
             // First 12 pieces in the array are player 0
             for (unsigned char i = 0; i<12; i++)
             {
-                for (unsigned char j = 0; j<index; j++)
+                if (pieces[i].in_play)
                 {
-                    if ((pieces[i].pos[0] == temp[j].x) && (pieces[i].pos[1] == temp[j].y))
+                    for (unsigned char j = 0; j<index; j++)
                     {
-                        temp[j].x = 8;  // set position to invalid value to indicate it's invalid
+                        if (pieces[i].in_play && (pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
+                        {
+                            temp_to_test[j].x = 8;  // set position to invalid value to indicate it's invalid
+                        }
                     }
-                }
+                }                
             }
             
-            for (unsigned char i = 12; i<24; i++)
+            for (unsigned char i = 12; i<24; i++) //for each opposing piece
             {
-                for (unsigned char j = 0; j<index; j++)
+                if (pieces[i].in_play)
                 {
-                    if ((pieces[i].pos[0] == temp[j].x) && (pieces[i].pos[1] == temp[j].y))
+                    for (unsigned char j = 0; j<index; j++) // check position against each possible move
                     {
-                        unsigned char x = temp[j].x +(temp[j].x - pieces[i].pos[0]);
-                        unsigned char y = temp[j].y +(temp[j].y - pieces[i].pos[1]);
+                        // if position of piece and possible move
+                        if ((pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
+                        {
+                            unsigned char x = temp_to_test[j].x +(temp_to_test[j].x - pieces[piece_to_move].pos[0]);
+                            unsigned char y = temp_to_test[j].y +(temp_to_test[j].y - pieces[piece_to_move].pos[1]);
                         
-                        if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
-                        {
-                            temp[j].x = x;
-                            temp[j].y = y;
-                            temp[j].jump = 1;
-                            temp[j].jumped_piece = i;
-                        }
-                        else // otherwise move is not valid
-                        {
-                            temp[j].x = 8;
+                            if (!space_occupied(x, y))   //check if space over the piece is open, if so it can jump over
+                            {
+                                temp_to_test[j].x = x;
+                                temp_to_test[j].y = y;
+                                temp_to_test[j].jump = 1;
+                                temp_to_test[j].jumped_piece = i;
+                            }
+                            else // otherwise move is not valid
+                            {
+                                temp_to_test[j].x = 8;
+                            }
                         }
                     }
-                }
+                }                                
             }
         }
         
-        if (pieces[piece_to_move].player == 1)
+        if (pieces[piece_to_move].player == 1)  // same checks for the second player
         {
-            if (pieces[piece_to_move].pos[0]>0)
+            if (pieces[piece_to_move].pos[0]>0) //bounds check
             {
-                temp[index].x = pieces[piece_to_move].pos[0]-1;
-                temp[index].y = pieces[piece_to_move].pos[1]+1;
+                temp_to_test[index].x = pieces[piece_to_move].pos[0]-1;
+                temp_to_test[index].y = pieces[piece_to_move].pos[1]+1;
+                temp_to_test[index].jump = 0;
+                temp_to_test[index].jumped_piece = 25;
                 index++;
             }
             if (pieces[piece_to_move].pos[0]<7)
             {
-                temp[index].x = pieces[piece_to_move].pos[0]+1;
-                temp[index].y = pieces[piece_to_move].pos[1]+1;
+                temp_to_test[index].x = pieces[piece_to_move].pos[0]+1;
+                temp_to_test[index].y = pieces[piece_to_move].pos[1]+1;
+                temp_to_test[index].jump = 0;
+                temp_to_test[index].jumped_piece = 25;
                 index++;
             }
             // Cannot move onto or jump over a square holding a piece from the same team
             for (unsigned char i = 12; i<24; i++)
             {
-                for (unsigned char j = 0; j<index; j++)
+                if (pieces[i].in_play)
                 {
-                    if ((pieces[i].pos[0] == temp[j].x) && (pieces[i].pos[1] == temp[j].y))
+                    for (unsigned char j = 0; j<index; j++)
                     {
-                        temp[j].x = 8;  // set position to invalid value to indicate it's invalid
+                        if ((pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
+                        {
+                            temp_to_test[j].x = 8;  // set position to invalid value to indicate it's invalid
+                        }
                     }
                 }
             }
             
             for (unsigned char i = 0; i<12; i++)
             {
-                for (unsigned char j = 0; j<index; j++)
+                if (pieces[i].in_play)
                 {
-                    if ((pieces[i].pos[0] == temp[j].x) && (pieces[i].pos[1] == temp[j].y))
+                    for (unsigned char j = 0; j<index; j++)
                     {
-                        unsigned char x = temp[j].x +(temp[j].x - pieces[i].pos[0]);
-                        unsigned char y = temp[j].y +(temp[j].y - pieces[i].pos[1]);
+                        if ((pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
+                        {
+                            unsigned char x = temp_to_test[j].x + (temp_to_test[j].x - pieces[piece_to_move].pos[0]);
+                            unsigned char y = temp_to_test[j].y + (temp_to_test[j].y - pieces[piece_to_move].pos[1]);
                         
-                        if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
-                        {
-                            temp[j].x = x;
-                            temp[j].y = y;
-                            temp[j].jump = 1;
-                            temp[j].jumped_piece = i;
+                            if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
+                            {
+                                temp_to_test[j].x = x;
+                                temp_to_test[j].y = y;
+                                temp_to_test[j].jump = 1;
+                                temp_to_test[j].jumped_piece = i;
+                            }
+                            else // otherwise move is not valid
+                            {
+                                temp_to_test[j].x = 8;
+                            }
                         }
-                        else // otherwise move is not valid
-                        {
-                            temp[j].x = 8;
-                        }
-                    }
+                    }                    
                 }
             }
         }
@@ -232,18 +253,16 @@ unsigned char find_moves_for_piece()
     unsigned char count = 0;
     for (unsigned char i = 0; i<index; i++) // assign found valid moves to global array
     {
-        if (temp[i].x<8)
+        if (temp_to_test[i].x<8)
         {
             //Possible_Moves[count].x = temp[i].x;
             //Possible_Moves[count].y = temp[i].y;
-            Possible_Moves[count] = temp[i];
+            Possible_Moves[count] = temp_to_test[i];
             count++;
         }
     }
     
     return count;
 }
-
-enum ON_OFF_states{INIT, ON, OFF};
 
 #endif /* GAME_UTILS_H_ */

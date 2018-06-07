@@ -12,6 +12,10 @@
 #include "game_utils.h"
 
 enum CURSOR_STATES{INI, MOVE, SELECT_PIECE};
+enum ON_OFF_states{INIT, ON, OFF};
+unsigned char cursor_on;
+unsigned char piece_jumped = 25;  // if set to valid index in pieces array, move will take the piece at index out of play
+unsigned char select_flag, reset_flag, up_flag, down_flag, right_flag, left_flag = 0; // Input Flags
 
 int tick_cursor(int state)
 {
@@ -47,6 +51,7 @@ int tick_cursor(int state)
             }
             else if (select_flag && cursor_position[0] == pieces[piece_to_move].pos[0] && cursor_position[1] == pieces[piece_to_move].pos[1])
             {
+                //deselect piece
                 state = MOVE;
                 num_possible = 0;
                 piece_selected_flag = 0;
