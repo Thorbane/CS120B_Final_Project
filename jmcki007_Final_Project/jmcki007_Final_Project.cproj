@@ -149,6 +149,12 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="game.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="game_utils.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="LED.h">
       <SubType>compile</SubType>
     </Compile>
