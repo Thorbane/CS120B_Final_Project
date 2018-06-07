@@ -9,7 +9,7 @@
 #include "timer.h"
 #include "LED.h"
 
-#define tasksNum 7
+#define tasksNum 6
 
 typedef struct task {
     int state; // Current state of the task
@@ -548,6 +548,8 @@ int tick_joystick_input(int state)
             }
             else {state = SEL;}
             break;
+		default:
+			state = J_INIT;
     }
     return state;
 }    
@@ -810,5 +812,5 @@ int main()
 	TimerSet(1);
 	TimerOn();
     
-    while(1){}
+    while(1){TimerISR();}
 }
