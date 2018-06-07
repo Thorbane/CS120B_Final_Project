@@ -565,7 +565,7 @@ int tick_joystick_input(int state)
                 y += (input - 512);
                 if (y < -475)
                 {
-                    down_flag = 1;
+                    up_flag = 1;
                     y = 0;
                 }
             }
@@ -574,7 +574,7 @@ int tick_joystick_input(int state)
                 y += (input - 512);
                 if (y > 475)
                 {
-                    up_flag = 1;
+                    down_flag = 1;
                     y = 0;
                 }
             }
@@ -583,7 +583,7 @@ int tick_joystick_input(int state)
                 y = 0;
             }
             state = X;
-            ADMUX = 1;
+            ADMUX = 0;
             break;
         case SEL:
             if (PINA & 0x40)
