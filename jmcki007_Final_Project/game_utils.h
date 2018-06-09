@@ -279,34 +279,37 @@ unsigned char find_moves_for_piece()
 			index++;
 		}
 		
-		for (unsigned char i; i<24; i++)
+		for (unsigned char i = 0; i<24; i++)
 		{
 			for (unsigned char j = 0; j<index; j++)
 			{
-				if ((pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
+				if (pieces[i].in_play)
 				{
-					if (pieces[i].player == pieces[piece_to_move].player)
+					if ((pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
 					{
-						temp_to_test[j].x = 8;
-					}
-					else
-					{
-						unsigned char x = temp_to_test[j].x + (temp_to_test[j].x - pieces[piece_to_move].pos[0]);
-						unsigned char y = temp_to_test[j].y + (temp_to_test[j].y - pieces[piece_to_move].pos[1]);
-						
-						if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
-						{
-							temp_to_test[j].x = x;
-							temp_to_test[j].y = y;
-							temp_to_test[j].jump = 1;
-							temp_to_test[j].jumped_piece = i;
-						}
-						else // otherwise move is not valid
+						if (pieces[i].player == pieces[piece_to_move].player)
 						{
 							temp_to_test[j].x = 8;
 						}
-					}
-				}				
+						else
+						{
+							unsigned char x = temp_to_test[j].x + (temp_to_test[j].x - pieces[piece_to_move].pos[0]);
+							unsigned char y = temp_to_test[j].y + (temp_to_test[j].y - pieces[piece_to_move].pos[1]);
+						
+							if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
+							{
+								temp_to_test[j].x = x;
+								temp_to_test[j].y = y;
+								temp_to_test[j].jump = 1;
+								temp_to_test[j].jumped_piece = i;
+							}
+							else // otherwise move is not valid
+							{
+								temp_to_test[j].x = 8;
+							}
+						}
+					}	
+				}
 			}
 		}
 	}
