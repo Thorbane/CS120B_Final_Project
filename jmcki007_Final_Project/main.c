@@ -32,6 +32,7 @@ const unsigned char BOARD_COLOR[3] = {1,0,0};
 const unsigned char CURSOR_COLOR[3] = {2,3,3};
 const unsigned char POSSIBLE_MOVE_COLOR[3] = {1,1,1};
 const unsigned char PLAYR_COLOR[2][3] = {{0,0,2}, {0,2,0}};
+const unsigned char KING_COLOR[2][3] = {{0,2,2}, {2,2,0}};
 const unsigned char CURSOR_START[2] = {3,3};
 
 void TimerISR() {
@@ -73,7 +74,14 @@ void set_frame()
     {
         if (pieces[i].in_play)
         {
-            set_pixel(pieces[i].pos[0], pieces[i].pos[1], PLAYR_COLOR[pieces[i].player][0], PLAYR_COLOR[pieces[i].player][1], PLAYR_COLOR[pieces[i].player][2]);
+			if (!pieces[i].king)
+			{
+				set_pixel(pieces[i].pos[0], pieces[i].pos[1], PLAYR_COLOR[pieces[i].player][0], PLAYR_COLOR[pieces[i].player][1], PLAYR_COLOR[pieces[i].player][2]);
+			}
+			else
+			{
+				set_pixel(pieces[i].pos[0], pieces[i].pos[1], KING_COLOR[pieces[i].player][0], KING_COLOR[pieces[i].player][1], KING_COLOR[pieces[i].player][2]);
+			}
         }
     }
 	

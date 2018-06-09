@@ -250,6 +250,67 @@ unsigned char find_moves_for_piece()
             }
         }
     }
+	else
+	{
+		if (pieces[piece_to_move].pos[0]>0) // bounds check
+		{
+			temp_to_test[index].x = pieces[piece_to_move].pos[0]-1;
+			temp_to_test[index].y = pieces[piece_to_move].pos[1]-1;
+			temp_to_test[index].jump = 0;
+			temp_to_test[index].jumped_piece = 25;
+			index++;
+			temp_to_test[index].x = pieces[piece_to_move].pos[0]-1;
+			temp_to_test[index].y = pieces[piece_to_move].pos[1]+1;
+			temp_to_test[index].jump = 0;
+			temp_to_test[index].jumped_piece = 25;
+			index++;
+		}
+		if (pieces[piece_to_move].pos[0]<7)  // bounds check
+		{
+			temp_to_test[index].x = pieces[piece_to_move].pos[0]+1;
+			temp_to_test[index].y = pieces[piece_to_move].pos[1]-1;
+			temp_to_test[index].jump = 0;
+			temp_to_test[index].jumped_piece = 25;
+			index++;
+			temp_to_test[index].x = pieces[piece_to_move].pos[0]+1;
+			temp_to_test[index].y = pieces[piece_to_move].pos[1]+1;
+			temp_to_test[index].jump = 0;
+			temp_to_test[index].jumped_piece = 25;
+			index++;
+		}
+		
+		for (unsigned char i; i<24; i++)
+		{
+			for (unsigned char j = 0; j<index; j++)
+			{
+				if ((pieces[i].pos[0] == temp_to_test[j].x) && (pieces[i].pos[1] == temp_to_test[j].y))
+				{
+					if (pieces[i].player == pieces[piece_to_move].player)
+					{
+						temp_to_test[j].x = 8;
+					}
+					else
+					{
+						unsigned char x = temp_to_test[j].x + (temp_to_test[j].x - pieces[piece_to_move].pos[0]);
+						unsigned char y = temp_to_test[j].y + (temp_to_test[j].y - pieces[piece_to_move].pos[1]);
+						
+						if (!space_occupied(x, y))   //check if space over the piece is open, if so can jump over
+						{
+							temp_to_test[j].x = x;
+							temp_to_test[j].y = y;
+							temp_to_test[j].jump = 1;
+							temp_to_test[j].jumped_piece = i;
+						}
+						else // otherwise move is not valid
+						{
+							temp_to_test[j].x = 8;
+						}
+					}
+				}				
+			}
+		}
+	}
+	
     unsigned char count = 0;
     for (unsigned char i = 0; i<index; i++) // assign found valid moves to global array
     {
